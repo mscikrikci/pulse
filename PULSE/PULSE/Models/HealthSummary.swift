@@ -20,4 +20,16 @@ struct HealthSummary: Codable {
     var walkingSpeed: Double?      // m/s — 7-day rolling average (iPhone mobility)
     var stairAscentSpeed: Double?  // m/s — 7-day rolling average (iPhone mobility)
     var stairDescentSpeed: Double? // m/s — 7-day rolling average (iPhone mobility)
+
+    // Additional overnight / body metrics (iOS 17+)
+    var oxygenSaturation: Double?       // 0.0–1.0 fraction — average SpO2 during sleep
+    var wristTemperature: Double?       // °C deviation from baseline — appleSleepingWristTemperature
+
+    // Additional daily activity metrics (yesterday's totals)
+    var exerciseMinutes: Double?        // minutes from exercise ring (yesterday)
+    var distanceWalkingRunning: Double? // km total (yesterday)
+    var timeInDaylight: Double?         // minutes outdoors in daylight (yesterday)
+
+    // Body composition
+    var bodyMass: Double?               // kg — most recent reading
 }

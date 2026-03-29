@@ -6,6 +6,7 @@ struct TodayView: View {
     @State private var viewModel = TodayViewModel()
     @State private var weeklyReviewVM = WeeklyReviewViewModel()
     @State private var showWeeklyReview = false
+    @State private var showSettings = false
 
     // Daily log ephemeral state
     @State private var pendingAlcohol: Bool? = nil
@@ -40,8 +41,13 @@ struct TodayView: View {
                     }
 
                     // Today's actions (shown when tasks exist)
-                    if !viewModel.dailyTasks.isEmpty {
+                    if !viewModel.todayTasks.isEmpty {
                         todayActionsCard
+                    }
+
+                    // Daily habits (shown when habits exist)
+                    if !viewModel.habitTasks.isEmpty {
+                        dailyHabitsCard
                     }
 
                     // Mid-day check-in (always shown when health data is loaded)
@@ -60,8 +66,20 @@ struct TodayView: View {
                 .padding(.vertical)
             }
             .navigationTitle("Today")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
             .sheet(isPresented: $showWeeklyReview) {
                 WeeklyReviewView(viewModel: weeklyReviewVM)
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
             .task {
                 await viewModel.bootstrap()
@@ -219,55 +237,86 @@ struct TodayView: View {
     // MARK: - Today's Actions Card
 
     private var todayActionsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let tasks = viewModel.todayTasks
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Today's Actions")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
-                let done = viewModel.dailyTasks.filter(\.isCompleted).count
-                let total = viewModel.dailyTasks.count
-                Text("\(done)/\(total)")
+                let done = tasks.filter(\.isCompleted).count
+                Text("\(done)/\(tasks.count)")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(done == total ? .green : .secondary)
+                    .foregroundStyle(done == tasks.count ? .green : .secondary)
             }
 
-            ForEach(viewModel.dailyTasks) { task in
-                Button {
-                    viewModel.toggleTask(id: task.id)
-                } label: {
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(task.isCompleted ? .green : .secondary)
-                            .font(.system(size: 18))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(task.title)
-                                .font(.subheadline)
-                                .foregroundStyle(task.isCompleted ? .secondary : .primary)
-                                .strikethrough(task.isCompleted)
-                                .multilineTextAlignment(.leading)
-                            HStack(spacing: 6) {
-                                if let pid = task.protocolId {
-                                    Text(pid)
-                                        .font(.caption2)
-                                        .foregroundStyle(.blue)
-                                }
-                                if task.source == "chat" {
-                                    Text("from Chat")
-                                        .font(.caption2)
-                                        .foregroundStyle(.purple)
-                                }
-                            }
-                        }
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.plain)
+            ForEach(tasks) { task in
+                taskRow(task)
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
         .padding(.horizontal)
+    }
+
+    private var dailyHabitsCard: some View {
+        let habits = viewModel.habitTasks
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Daily Habits", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                let done = habits.filter(\.isCompleted).count
+                Text("\(done)/\(habits.count)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(done == habits.count ? .green : .secondary)
+            }
+
+            Text("Resets each day")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            ForEach(habits) { task in
+                taskRow(task)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+        .padding(.horizontal)
+    }
+
+    private func taskRow(_ task: DailyTask) -> some View {
+        Button {
+            viewModel.toggleTask(id: task.id)
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(task.isCompleted ? .green : .secondary)
+                    .font(.system(size: 18))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .font(.subheadline)
+                        .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                        .strikethrough(task.isCompleted)
+                        .multilineTextAlignment(.leading)
+                    HStack(spacing: 6) {
+                        if let pid = task.protocolId {
+                            Text(pid)
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                        }
+                        if task.source == "chat" {
+                            Text("from Chat")
+                                .font(.caption2)
+                                .foregroundStyle(.purple)
+                        }
+                    }
+                }
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Daily Log Card

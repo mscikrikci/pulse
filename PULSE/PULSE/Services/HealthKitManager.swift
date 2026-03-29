@@ -4,21 +4,31 @@ import HealthKit
 class HealthKitManager {
     private let store = HKHealthStore()
 
-    private let readTypes: Set<HKObjectType> = [
-        HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-        HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-        HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
-        HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
-        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-        HKObjectType.quantityType(forIdentifier: .stepCount)!,
-        // Mobility & fitness
-        HKObjectType.quantityType(forIdentifier: .vo2Max)!,
-        HKObjectType.quantityType(forIdentifier: .heartRateRecoveryOneMinute)!,
-        HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,
-        HKObjectType.quantityType(forIdentifier: .walkingSpeed)!,
-        HKObjectType.quantityType(forIdentifier: .stairAscentSpeed)!,
-        HKObjectType.quantityType(forIdentifier: .stairDescentSpeed)!
-    ]
+    private let readTypes: Set<HKObjectType> = {
+        var types: Set<HKObjectType> = [
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
+            HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+            HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
+            HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
+            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKObjectType.quantityType(forIdentifier: .stepCount)!,
+            // Mobility & fitness
+            HKObjectType.quantityType(forIdentifier: .vo2Max)!,
+            HKObjectType.quantityType(forIdentifier: .heartRateRecoveryOneMinute)!,
+            HKObjectType.quantityType(forIdentifier: .walkingHeartRateAverage)!,
+            HKObjectType.quantityType(forIdentifier: .walkingSpeed)!,
+            HKObjectType.quantityType(forIdentifier: .stairAscentSpeed)!,
+            HKObjectType.quantityType(forIdentifier: .stairDescentSpeed)!,
+            // Additional metrics
+            HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
+            HKObjectType.quantityType(forIdentifier: .appleSleepingWristTemperature)!,
+            HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKObjectType.quantityType(forIdentifier: .timeInDaylight)!,
+            HKObjectType.quantityType(forIdentifier: .bodyMass)!,
+        ]
+        return types
+    }()
 
     // MARK: - Authorization
 
@@ -51,11 +61,19 @@ class HealthKitManager {
         async let walkingSpeed = fetchWalkingSpeed()
         async let stairUp = fetchStairAscentSpeed()
         async let stairDown = fetchStairDescentSpeed()
+        async let spo2 = fetchOxygenSaturation()
+        async let wristTemp = fetchWristTemperature()
+        async let exerciseMins = fetchExerciseMinutes()
+        async let distance = fetchDistanceWalkingRunning()
+        async let daylight = fetchTimeInDaylight()
+        async let bodyMass = fetchBodyMass()
 
         let (hrvVal, rhrVal, sleepResult, respVal, calVal, stepsVal, todayCalVal, todayStepsVal,
-             vo2MaxVal, cardioRecoveryVal, walkingHRVal, walkingSpeedVal, stairUpVal, stairDownVal) =
+             vo2MaxVal, cardioRecoveryVal, walkingHRVal, walkingSpeedVal, stairUpVal, stairDownVal,
+             spo2Val, wristTempVal, exerciseMinsVal, distanceVal, daylightVal, bodyMassVal) =
             try await (hrv, restingHR, sleep, respRate, calories, steps, todayCal, todaySteps,
-                       vo2Max, cardioRecovery, walkingHR, walkingSpeed, stairUp, stairDown)
+                       vo2Max, cardioRecovery, walkingHR, walkingSpeed, stairUp, stairDown,
+                       spo2, wristTemp, exerciseMins, distance, daylight, bodyMass)
 
         return HealthSummary(
             date: today,
@@ -74,7 +92,13 @@ class HealthKitManager {
             walkingHeartRate: walkingHRVal,
             walkingSpeed: walkingSpeedVal,
             stairAscentSpeed: stairUpVal,
-            stairDescentSpeed: stairDownVal
+            stairDescentSpeed: stairDownVal,
+            oxygenSaturation: spo2Val,
+            wristTemperature: wristTempVal,
+            exerciseMinutes: exerciseMinsVal,
+            distanceWalkingRunning: distanceVal,
+            timeInDaylight: daylightVal,
+            bodyMass: bodyMassVal
         )
     }
 
@@ -250,6 +274,65 @@ class HealthKitManager {
         guard !samples.isEmpty else { return nil }
         let values = samples.map { $0.quantity.doubleValue(for: unit) }
         return values.reduce(0, +) / Double(values.count)
+    }
+
+    // MARK: - Additional Overnight / Body Metrics
+
+    /// Average blood oxygen saturation during sleep (stored as 0.0–1.0 fraction).
+    private func fetchOxygenSaturation() async throws -> Double? {
+        let type = HKQuantityType(.oxygenSaturation)
+        let start = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: yesterday()) ?? yesterday()
+        let end = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+        let samples = try await fetchQuantitySamples(type: type, start: start, end: end)
+        guard !samples.isEmpty else { return nil }
+        let values = samples.map { $0.quantity.doubleValue(for: HKUnit.percent()) }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    /// Wrist temperature deviation from personal baseline during sleep (°C). iOS 17+, Watch Series 8+ / Ultra only.
+    private func fetchWristTemperature() async throws -> Double? {
+        let type = HKQuantityType(.appleSleepingWristTemperature)
+        let start = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: yesterday()) ?? yesterday()
+        let end = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()) ?? Date()
+        let samples = try await fetchQuantitySamples(type: type, start: start, end: end)
+        return samples.last?.quantity.doubleValue(for: HKUnit.degreeCelsius())
+    }
+
+    // MARK: - Additional Activity Metrics (Yesterday)
+
+    /// Minutes of exercise ring time from yesterday.
+    private func fetchExerciseMinutes() async throws -> Double? {
+        let type = HKQuantityType(.appleExerciseTime)
+        let start = Calendar.current.startOfDay(for: yesterday())
+        let end = Calendar.current.startOfDay(for: Date())
+        return try await fetchSum(type: type, unit: .minute(), start: start, end: end)
+    }
+
+    /// Total walking + running distance from yesterday in km.
+    private func fetchDistanceWalkingRunning() async throws -> Double? {
+        let type = HKQuantityType(.distanceWalkingRunning)
+        let start = Calendar.current.startOfDay(for: yesterday())
+        let end = Calendar.current.startOfDay(for: Date())
+        guard let meters = try await fetchSum(type: type, unit: .meter(), start: start, end: end) else { return nil }
+        return meters / 1000.0
+    }
+
+    /// Minutes spent in daylight from yesterday. iOS 17+.
+    private func fetchTimeInDaylight() async throws -> Double? {
+        let type = HKQuantityType(.timeInDaylight)
+        let start = Calendar.current.startOfDay(for: yesterday())
+        let end = Calendar.current.startOfDay(for: Date())
+        return try await fetchSum(type: type, unit: .minute(), start: start, end: end)
+    }
+
+    // MARK: - Body Composition
+
+    /// Most recent body mass reading from the last 90 days (kg).
+    private func fetchBodyMass() async throws -> Double? {
+        let type = HKQuantityType(.bodyMass)
+        let start = Calendar.current.date(byAdding: .day, value: -90, to: Date())!
+        let samples = try await fetchQuantitySamples(type: type, start: start, end: Date())
+        return samples.last?.quantity.doubleValue(for: HKUnit.gramUnit(with: .kilo))
     }
 
     // MARK: - Generic Query Helpers

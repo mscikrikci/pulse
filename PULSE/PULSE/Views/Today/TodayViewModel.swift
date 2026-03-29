@@ -345,6 +345,12 @@ class TodayViewModel {
 
     // MARK: - Daily Tasks
 
+    /// Single-day actions (completed and discarded at end of day).
+    var todayTasks: [DailyTask] { dailyTasks.filter { !$0.isHabit } }
+
+    /// Multi-day behavioral habits (persist across days, completion resets each day).
+    var habitTasks: [DailyTask] { dailyTasks.filter { $0.isHabit } }
+
     /// Creates tasks from the morning card. Skips if morning-card tasks already exist for today.
     func populateTasksFromMorningCard(_ card: MorningCardResponse) {
         guard !dailyTasks.contains(where: { $0.source == "morning_card" }) else { return }

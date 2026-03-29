@@ -49,12 +49,16 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
     case hrv = "hrv"
     case restingHR = "resting_hr"
     case respiratoryRate = "respiratory_rate"
+    case vo2Max = "vo2max"
+    case cardioRecovery = "cardio_recovery"
 
     var label: String {
         switch self {
         case .hrv:             return "Heart Rate Variability"
         case .restingHR:       return "Resting Heart Rate"
         case .respiratoryRate: return "Sleep Respiratory Rate"
+        case .vo2Max:          return "Cardio Fitness (VO2 Max)"
+        case .cardioRecovery:  return "Cardio Recovery (1 min)"
         }
     }
 
@@ -63,6 +67,8 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
         case .hrv:             return "ms"
         case .restingHR:       return "bpm"
         case .respiratoryRate: return "breaths/min"
+        case .vo2Max:          return "mL/(kg·min)"
+        case .cardioRecovery:  return "bpm drop"
         }
     }
 
@@ -71,6 +77,8 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
         case .hrv:             return .higherIsBetter
         case .restingHR:       return .lowerIsBetter
         case .respiratoryRate: return .lowerIsBetter
+        case .vo2Max:          return .higherIsBetter
+        case .cardioRecovery:  return .higherIsBetter
         }
     }
 
@@ -85,6 +93,14 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
         case .respiratoryRate:
             return SafeZoneConfig(type: "absolute", warningPct: nil, alertPct: nil,
                                   warningValue: 17, alertValue: 19)
+        case .vo2Max:
+            // Alert if 7d avg drops >10% below 30d avg
+            return SafeZoneConfig(type: "relative", warningPct: -8, alertPct: -12,
+                                  warningValue: nil, alertValue: nil)
+        case .cardioRecovery:
+            // Alert if 1-min HR drop falls below these thresholds (lower drop = worse fitness)
+            return SafeZoneConfig(type: "absolute_lower", warningPct: nil, alertPct: nil,
+                                  warningValue: 12, alertValue: 8)
         }
     }
 
@@ -96,6 +112,10 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
             return "Average: 60–80bpm. Good: 50–60bpm. Excellent: below 50bpm. Adaptations take 8–16 weeks."
         case .respiratoryRate:
             return "Normal: 12–20 br/min. Good: 12–16. Optimal sleep: 12–14. Improvements take 4–8 weeks."
+        case .vo2Max:
+            return "Average men: 35–40, women: 30–35 mL/(kg·min). Good: 45–50. Excellent: 50+. Aerobic adaptations take 8–16 weeks."
+        case .cardioRecovery:
+            return "Poor: <12 bpm drop. Average: 15–20. Good: 20–30. Excellent: >30 bpm. Improves with consistent cardio over 8–12 weeks."
         }
     }
 
@@ -105,6 +125,8 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
         case .hrv:             return "↑"
         case .restingHR:       return "↓"
         case .respiratoryRate: return "↓"
+        case .vo2Max:          return "↑"
+        case .cardioRecovery:  return "↑"
         }
     }
 
@@ -114,6 +136,8 @@ enum GoalMetric: String, Codable, Sendable, CaseIterable {
         case .hrv:             return "aim above this value"
         case .restingHR:       return "aim below this value"
         case .respiratoryRate: return "aim below this value"
+        case .vo2Max:          return "aim above this value"
+        case .cardioRecovery:  return "aim above this value"
         }
     }
 }

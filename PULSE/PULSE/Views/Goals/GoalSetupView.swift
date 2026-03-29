@@ -209,7 +209,9 @@ struct GoalSetupView: View {
         )
         Task {
             await viewModel.saveGoal(goal)
-            dismiss()
+            if viewModel.error == nil {
+                dismiss()
+            }
         }
     }
 }

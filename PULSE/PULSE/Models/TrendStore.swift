@@ -51,49 +51,94 @@ actor TrendStore {
     }
 
     /// Merges a new HealthSummary into the history and recomputes baselines.
+    ///
+    /// Readiness metrics (HRV, sleep, RHR, respiratory rate, SpO2, wrist temp, rolling
+    /// fitness metrics, body mass) are stored under today's date — they reflect last night's
+    /// overnight data and current fitness state.
+    ///
+    /// Activity metrics (steps, calories, exercise minutes, distance, daylight) are stored
+    /// under yesterday's date because they represent the prior full day's accumulated totals.
     func update(with summary: HealthSummary) async throws {
-        let key = Self.dateKey(from: summary.date)
+        let todayKey = Self.dateKey(from: summary.date)
+        let yesterdayKey = Self.dateKey(from: Calendar.current.date(byAdding: .day, value: -1, to: summary.date)!)
 
-        // Upsert today's entry
-        // Preserve existing alcohol/events fields when upserting today's entry
-        let existing = data.history.first(where: { $0.date == key })
-        let entry = DayEntry(
-            date: key,
+        // --- Today's entry: readiness + rolling fitness + body ---
+        let existingToday = data.history.first(where: { $0.date == todayKey })
+        let todayEntry = DayEntry(
+            date: todayKey,
             hrv: summary.hrv,
             restingHR: summary.restingHR,
             sleepHours: summary.sleepHours,
             sleepEfficiency: summary.sleepEfficiency,
             respiratoryRate: summary.respiratoryRate,
-            activeCalories: summary.activeCalories,
-            steps: summary.steps,
-            alcoholReported: existing?.alcoholReported,
-            events: existing?.events,
+            activeCalories: nil,
+            steps: nil,
+            alcoholReported: existingToday?.alcoholReported,
+            events: existingToday?.events,
             vo2Max: summary.vo2Max,
             cardioRecovery: summary.cardioRecovery,
             walkingHeartRate: summary.walkingHeartRate,
             walkingSpeed: summary.walkingSpeed,
             stairAscentSpeed: summary.stairAscentSpeed,
-            stairDescentSpeed: summary.stairDescentSpeed
+            stairDescentSpeed: summary.stairDescentSpeed,
+            oxygenSaturation: summary.oxygenSaturation,
+            wristTemperature: summary.wristTemperature,
+            exerciseMinutes: nil,
+            distanceWalkingRunning: nil,
+            timeInDaylight: nil,
+            bodyMass: summary.bodyMass
         )
+        upsert(entry: todayEntry)
 
-        if let idx = data.history.firstIndex(where: { $0.date == key }) {
-            data.history[idx] = entry
-        } else {
-            data.history.append(entry)
-        }
+        // --- Yesterday's entry: full-day activity totals ---
+        let existingYesterday = data.history.first(where: { $0.date == yesterdayKey })
+        let yesterdayEntry = DayEntry(
+            date: yesterdayKey,
+            hrv: existingYesterday?.hrv,
+            restingHR: existingYesterday?.restingHR,
+            sleepHours: existingYesterday?.sleepHours,
+            sleepEfficiency: existingYesterday?.sleepEfficiency,
+            respiratoryRate: existingYesterday?.respiratoryRate,
+            activeCalories: summary.activeCalories,
+            steps: summary.steps,
+            alcoholReported: existingYesterday?.alcoholReported,
+            events: existingYesterday?.events,
+            vo2Max: existingYesterday?.vo2Max,
+            cardioRecovery: existingYesterday?.cardioRecovery,
+            walkingHeartRate: existingYesterday?.walkingHeartRate,
+            walkingSpeed: existingYesterday?.walkingSpeed,
+            stairAscentSpeed: existingYesterday?.stairAscentSpeed,
+            stairDescentSpeed: existingYesterday?.stairDescentSpeed,
+            oxygenSaturation: existingYesterday?.oxygenSaturation,
+            wristTemperature: existingYesterday?.wristTemperature,
+            exerciseMinutes: summary.exerciseMinutes,
+            distanceWalkingRunning: summary.distanceWalkingRunning,
+            timeInDaylight: summary.timeInDaylight,
+            bodyMass: existingYesterday?.bodyMass
+        )
+        upsert(entry: yesterdayEntry)
 
-        // Keep only last 30 days
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        // Keep only last 31 days (need yesterday + 30 days of history)
+        let cutoff = Calendar.current.date(byAdding: .day, value: -31, to: Date()) ?? Date()
         data.history = data.history.filter {
             guard let d = Self.date(from: $0.date) else { return false }
             return d >= cutoff
         }
+        data.history.sort { $0.date < $1.date }
 
         data.baselineDataDays = data.history.count
         data.lastUpdated = Date()
         data.baselines = computeBaselines()
 
         try save()
+    }
+
+    private func upsert(entry: DayEntry) {
+        if let idx = data.history.firstIndex(where: { $0.date == entry.date }) {
+            data.history[idx] = entry
+        } else {
+            data.history.append(entry)
+        }
     }
 
     func recordAlcohol(_ reported: Bool, for date: Date) async throws {
@@ -145,7 +190,12 @@ actor TrendStore {
             vo2Max7DayAvg: avg(last7.compactMap(\.vo2Max)),
             walkingSpeed30DayAvg: avg(last30.compactMap(\.walkingSpeed)),
             walkingSpeed7DayAvg: avg(last7.compactMap(\.walkingSpeed)),
-            walkingHeartRate30DayAvg: avg(last30.compactMap(\.walkingHeartRate))
+            walkingHeartRate30DayAvg: avg(last30.compactMap(\.walkingHeartRate)),
+            cardioRecovery30DayAvg: avg(last30.compactMap(\.cardioRecovery)),
+            oxygenSaturation30DayAvg: avg(last30.compactMap(\.oxygenSaturation)),
+            exerciseMinutes7DayAvg: avg(last7.compactMap(\.exerciseMinutes)),
+            distanceWalkingRunning7DayAvg: avg(last7.compactMap(\.distanceWalkingRunning)),
+            bodyMass7DayAvg: avg(last7.compactMap(\.bodyMass))
         )
     }
 

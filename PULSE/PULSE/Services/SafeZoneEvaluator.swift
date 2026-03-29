@@ -77,6 +77,37 @@ struct SafeZoneEvaluator {
             return SafeZoneResult(goalId: goal.id, metric: .respiratoryRate, status: status,
                                   currentValue: current,
                                   thresholdLabel: "\(String(format: "%.1f", current)) br/min")
+
+        case .vo2Max:
+            guard let current = summary.vo2Max,
+                  let baseline = baselines.vo2Max30DayAvg, baseline > 0 else { return nil }
+            let pct = (current - baseline) / baseline * 100
+            let status: SafeZoneStatus
+            if let alertPct = config.alertPct, pct <= alertPct {
+                status = .alert
+            } else if let warnPct = config.warningPct, pct <= warnPct {
+                status = .warning
+            } else {
+                status = .normal
+            }
+            return SafeZoneResult(goalId: goal.id, metric: .vo2Max, status: status,
+                                  currentValue: current,
+                                  thresholdLabel: "\(String(format: "%.0f", pct))% from 30d avg")
+
+        case .cardioRecovery:
+            // "absolute_lower" type: alert when value drops *below* threshold (higher drop = better)
+            guard let current = summary.cardioRecovery else { return nil }
+            let status: SafeZoneStatus
+            if let alertVal = config.alertValue, current <= alertVal {
+                status = .alert
+            } else if let warnVal = config.warningValue, current <= warnVal {
+                status = .warning
+            } else {
+                status = .normal
+            }
+            return SafeZoneResult(goalId: goal.id, metric: .cardioRecovery, status: status,
+                                  currentValue: current,
+                                  thresholdLabel: "\(String(format: "%.0f", current)) bpm drop")
         }
     }
 }

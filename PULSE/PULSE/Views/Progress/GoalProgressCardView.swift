@@ -190,6 +190,8 @@ struct GoalProgressCardView: View {
         case .hrv:             return "waveform.path.ecg"
         case .restingHR:       return "heart.fill"
         case .respiratoryRate: return "lungs.fill"
+        case .vo2Max:          return "figure.run"
+        case .cardioRecovery:  return "bolt.heart.fill"
         }
     }
 
@@ -198,6 +200,8 @@ struct GoalProgressCardView: View {
         case .hrv:             return .green
         case .restingHR:       return .red
         case .respiratoryRate: return .blue
+        case .vo2Max:          return .orange
+        case .cardioRecovery:  return .purple
         }
     }
 }

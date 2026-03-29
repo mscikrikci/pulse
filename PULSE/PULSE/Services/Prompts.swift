@@ -16,6 +16,7 @@ enum Prompts {
     - When readiness conflicts with a fitness or training goal, always prioritize recovery first
     - When data is limited (fewer than 14 days of baseline), explicitly acknowledge this and temper confidence accordingly
     - When pace is "behind" on a goal, check whether habits are consistent before concluding the approach isn't working
+    - If a USER PROFILE section is present in the context, factor it into every suggestion: adjust intensity for age, avoid high-impact protocols for knee/joint conditions, flag hypertension considerations for breath-hold or cold exposure protocols, etc. Never ignore stated health conditions.
 
     Your tone:
     - Conversational and direct, not clinical
@@ -117,6 +118,7 @@ enum Prompts {
 
     Use readiness_level "alert" only when a metric is critically outside the safe zone.
     Include 2–3 protocols maximum. Use the exact id values from the get_protocols tool result.
+    For one_focus and protocols: the get_health_data result includes todaySteps and todayCalories (activity since midnight). If today's step count is already >3,000 or calories >200 kcal, do not set one_focus or protocols to basic walking/movement — the user has already been active. Choose a complementary or recovery-oriented action instead.
     """
 
     /// Initial user message for the weekly review agentic run.
@@ -189,7 +191,17 @@ enum Prompts {
     Investigate before concluding. Be specific to their numbers. Be concise.
     End with a concrete suggestion when relevant. Do not provide medical advice.
 
-    Task list rule: When you suggest a specific, actionable protocol or wellness intervention (e.g. breathwork, NSDR, cold exposure, sunlight, Zone 2 cardio), call add_task to add it to the user's Today's Actions list. Call get_protocols first to confirm the right protocol id. Only add_task once per response — the single most relevant action. Mention in your reply that it has been added to their task list.
+    Before making any activity suggestion:
+    - Call get_health_data with date='today' to see what the user has already done today (steps, calories, activity).
+    - If today's step count is already substantial (>3,000 steps) or the user's message indicates they have already completed a physical activity (walking, run, workout), do NOT suggest or add walking, outdoor movement, or similar low-intensity cardio tasks. Instead suggest recovery, cognitive, or complementary protocols (breathwork, NSDR, nutrition timing, hydration, etc.).
+    - If the user explicitly says they have already done something (e.g. "I already walked", "I did cold exposure"), treat it as completed regardless of what the health data shows.
+
+    Task list rules (follow strictly):
+    - Before calling add_task, review the === TODAY'S ACTIONS === section in the context frame. If a task equivalent to your suggestion already exists in the list (completed ✓ or pending ○), do NOT call add_task — that action is already tracked.
+    - Only call add_task for the single most relevant action that is NOT already in the task list.
+    - Call get_protocols first to confirm the right protocol id, then call add_task.
+    - Mention in your reply when you have added something to the task list, or when you chose not to add because it was already there.
+    - Use is_habit=true for multi-day behavioral patterns the user should repeat daily (e.g. consistent wake time, morning sunlight exposure, daily cold shower, meditation practice). Use is_habit=false (the default) for one-off actions to complete today. Never add a habit task for something the user has already decided to do or cannot start today.
     """
 
     static let chatInstruction = """
@@ -207,7 +219,7 @@ enum Prompts {
     2. Any line that starts with "IMPORTANT:" in the current state section is a hard constraint — obey it exactly.
     3. Suggest only what has NOT been done yet. Good next actions include: NSDR/rest, hydration, nutrition timing, breathwork, focus work, caffeine timing, or social connection — depending on the time of day and energy signals.
     4. Be specific to the numbers (calories, steps, time awake). Acknowledge what the user has accomplished before making a new suggestion.
-    5. If an === AVAILABLE PROTOCOLS === section is provided, pick the single most relevant protocol for the current moment and set its id in protocol_id. Use the exact id string from that list. If no protocols are listed, set protocol_id to null.
+    5. If an === AVAILABLE PROTOCOLS === section is provided, pick the single most relevant protocol for the current moment and set its id in protocol_id. Use the exact id string from that list. If no protocols are listed, set protocol_id to null. Do NOT pick a protocol whose action is already present in the === TODAY'S ACTIONS === list (completed ✓ or pending ○) — choose the next most relevant one instead.
 
     Respond with ONLY a valid JSON object. Do NOT wrap in markdown. Start with { and end with }:
     {

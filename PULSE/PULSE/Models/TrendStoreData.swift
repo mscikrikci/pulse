@@ -38,6 +38,11 @@ struct Baselines: Codable, Sendable {
     var walkingSpeed30DayAvg: Double? = nil
     var walkingSpeed7DayAvg: Double? = nil
     var walkingHeartRate30DayAvg: Double? = nil
+    var cardioRecovery30DayAvg: Double? = nil
+    var oxygenSaturation30DayAvg: Double? = nil
+    var exerciseMinutes7DayAvg: Double? = nil
+    var distanceWalkingRunning7DayAvg: Double? = nil
+    var bodyMass7DayAvg: Double? = nil
 }
 
 struct DayEntry: Codable, Sendable {
@@ -58,4 +63,12 @@ struct DayEntry: Codable, Sendable {
     var walkingSpeed: Double?
     var stairAscentSpeed: Double?
     var stairDescentSpeed: Double?
+    // Additional overnight / body metrics
+    var oxygenSaturation: Double?
+    var wristTemperature: Double?
+    // Additional daily activity metrics
+    var exerciseMinutes: Double?
+    var distanceWalkingRunning: Double?
+    var timeInDaylight: Double?
+    var bodyMass: Double?
 }

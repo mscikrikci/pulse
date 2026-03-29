@@ -34,7 +34,7 @@ enum AgentTools {
                 "properties": [
                     "metric": [
                         "type": "string",
-                        "enum": ["hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency", "active_calories", "steps", "vo2max", "walking_speed", "walking_hr", "cardio_recovery", "stair_ascent_speed", "stair_descent_speed"]
+                        "enum": ["hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency", "active_calories", "steps", "vo2max", "walking_speed", "walking_hr", "cardio_recovery", "stair_ascent_speed", "stair_descent_speed", "oxygen_saturation", "exercise_minutes", "distance_km", "body_mass_kg"]
                     ],
                     "days": [
                         "type": "integer",
@@ -54,7 +54,8 @@ enum AgentTools {
                     "metric": [
                         "type": "string",
                         "enum": ["all", "hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency",
-                                 "vo2max", "walking_speed", "walking_hr"],
+                                 "vo2max", "cardio_recovery", "walking_speed", "walking_hr",
+                                 "oxygen_saturation", "exercise_minutes", "distance_km", "body_mass_kg"],
                         "description": "Omit or pass 'all' to get every baseline."
                     ]
                 ]
@@ -70,7 +71,7 @@ enum AgentTools {
                 "properties": [
                     "metric": [
                         "type": "string",
-                        "enum": ["all", "hrv", "resting_hr", "respiratory_rate"],
+                        "enum": ["all", "hrv", "resting_hr", "respiratory_rate", "vo2max", "cardio_recovery"],
                         "description": "Filter by metric, or 'all' for every goal."
                     ]
                 ]
@@ -109,11 +110,11 @@ enum AgentTools {
                 "properties": [
                     "metric_a": [
                         "type": "string",
-                        "enum": ["hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency", "active_calories", "steps", "vo2max", "walking_speed", "walking_hr", "cardio_recovery", "stair_ascent_speed", "stair_descent_speed"]
+                        "enum": ["hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency", "active_calories", "steps", "vo2max", "walking_speed", "walking_hr", "cardio_recovery", "stair_ascent_speed", "stair_descent_speed", "oxygen_saturation", "exercise_minutes", "distance_km", "body_mass_kg"]
                     ],
                     "metric_b": [
                         "type": "string",
-                        "enum": ["hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency", "active_calories", "steps", "vo2max", "walking_speed", "walking_hr", "cardio_recovery", "stair_ascent_speed", "stair_descent_speed"]
+                        "enum": ["hrv", "resting_hr", "respiratory_rate", "sleep_hours", "sleep_efficiency", "active_calories", "steps", "vo2max", "walking_speed", "walking_hr", "cardio_recovery", "stair_ascent_speed", "stair_descent_speed", "oxygen_saturation", "exercise_minutes", "distance_km", "body_mass_kg"]
                     ],
                     "days": [
                         "type": "integer",

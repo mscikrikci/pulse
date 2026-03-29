@@ -70,4 +70,5 @@ enum LLMFeature: String, Codable, CaseIterable {
     case weeklyReview  = "Weekly Review"
     case chat          = "Chat"
     case agentLoop     = "Agent Loop"
+    case trainer       = "Trainer"
 }

@@ -173,6 +173,8 @@ private struct GoalRow: View {
         case .hrv:             return .green
         case .restingHR:       return .red
         case .respiratoryRate: return .blue
+        case .vo2Max:          return .orange
+        case .cardioRecovery:  return .purple
         }
     }
 

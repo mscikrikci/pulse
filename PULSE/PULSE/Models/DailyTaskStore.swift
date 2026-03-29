@@ -16,14 +16,24 @@ struct DailyTaskStore {
         try? data.write(to: url, options: .atomic)
     }
 
-    /// Returns today's task list if it was saved today, otherwise nil.
+    /// Returns today's task list. On a new day, daily tasks are discarded but habit tasks
+    /// are carried over with completion state reset to false. Returns nil if no file exists.
     static func loadIfToday() -> [DailyTask]? {
         guard let url = storeURL(),
               FileManager.default.fileExists(atPath: url.path),
               let data = try? Data(contentsOf: url),
-              let persisted = try? JSONDecoder().decode(PersistedTasks.self, from: data),
-              persisted.date == todayKey() else { return nil }
-        return persisted.tasks
+              let persisted = try? JSONDecoder().decode(PersistedTasks.self, from: data) else { return nil }
+        if persisted.date == todayKey() {
+            return persisted.tasks
+        } else {
+            // New day: carry over habit tasks with completion state reset
+            let habits = persisted.tasks.filter(\.isHabit).map { task -> DailyTask in
+                var t = task
+                t.isCompleted = false
+                return t
+            }
+            return habits.isEmpty ? nil : habits
+        }
     }
 
     private static func todayKey() -> String {

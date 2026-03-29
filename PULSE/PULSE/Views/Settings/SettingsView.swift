@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var isShowingKey = false
     @State private var savedConfirmation = false
     @State private var showMemoryDebug = false
+    @State private var showProfile = false
 
     private var isKeyFromPlist: Bool {
         UserDefaults.standard.string(forKey: "anthropicAPIKey") == nil && APIKeyStore.isConfigured
@@ -59,11 +60,44 @@ struct SettingsView: View {
                     }
                 }
 
+                // MARK: Profile
+                Section {
+                    HStack {
+                        Text("Your Profile")
+                        Spacer()
+                        let profile = UserProfileStore.load()
+                        if profile.isEmpty {
+                            Text("Not set")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.caption)
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { showProfile = true }
+                } header: {
+                    Text("Personalisation")
+                } footer: {
+                    Text("Age, gender, body metrics, and health conditions help the AI tailor suggestions.")
+                }
+
                 // MARK: Debug
                 Section("Debug") {
-                    Button("Memory Inspector") {
-                        showMemoryDebug = true
+                    HStack {
+                        Text("Memory Inspector")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
+                    .onTapGesture { showMemoryDebug = true }
                 }
 
                 // MARK: About
@@ -78,6 +112,9 @@ struct SettingsView: View {
                 NavigationStack {
                     MemoryDebugView()
                 }
+            }
+            .sheet(isPresented: $showProfile) {
+                UserProfileView()
             }
             .alert("API Key Saved", isPresented: $savedConfirmation) {
                 Button("OK") {}

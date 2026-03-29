@@ -90,6 +90,8 @@ class GoalsViewModel {
         case .hrv:             return currentSummary?.hrv ?? baselines.hrv7DayAvg
         case .restingHR:       return currentSummary?.restingHR ?? baselines.restingHR7DayAvg
         case .respiratoryRate: return currentSummary?.respiratoryRate ?? baselines.respiratoryRate30DayAvg
+        case .vo2Max:          return currentSummary?.vo2Max ?? baselines.vo2Max7DayAvg
+        case .cardioRecovery:  return currentSummary?.cardioRecovery ?? baselines.cardioRecovery30DayAvg
         }
     }
 
@@ -98,6 +100,8 @@ class GoalsViewModel {
         case .hrv:             return baselines.hrv30DayAvg
         case .restingHR:       return baselines.restingHR30DayAvg
         case .respiratoryRate: return baselines.respiratoryRate30DayAvg
+        case .vo2Max:          return baselines.vo2Max30DayAvg
+        case .cardioRecovery:  return baselines.cardioRecovery30DayAvg
         }
     }
 

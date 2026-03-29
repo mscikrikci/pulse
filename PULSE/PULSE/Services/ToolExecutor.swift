@@ -90,6 +90,13 @@ actor ToolExecutor {
         if let v = e.walkingSpeed     { d["walking_speed_m_s"] = round(v * 100) / 100 }
         if let v = e.stairAscentSpeed { d["stair_ascent_speed_m_s"] = round(v * 100) / 100 }
         if let v = e.stairDescentSpeed { d["stair_descent_speed_m_s"] = round(v * 100) / 100 }
+        // Additional metrics
+        if let v = e.oxygenSaturation { d["oxygen_saturation_pct"] = Int(v * 100) }
+        if let v = e.wristTemperature { d["wrist_temp_deviation_c"] = round(v * 100) / 100 }
+        if let v = e.exerciseMinutes  { d["exercise_minutes"] = Int(v) }
+        if let v = e.distanceWalkingRunning { d["distance_km"] = round(v * 100) / 100 }
+        if let v = e.timeInDaylight   { d["daylight_minutes"] = Int(v) }
+        if let v = e.bodyMass         { d["body_mass_kg"] = round(v * 10) / 10 }
         return d
     }
 
@@ -131,7 +138,7 @@ actor ToolExecutor {
         let slope = denominator == 0 ? 0 : numerator / denominator   // units per day
 
         // "improving" = going in the desired direction
-        let isInverseMetric = metric == "resting_hr" || metric == "respiratory_rate" || metric == "walking_hr"
+        let isInverseMetric = metric == "resting_hr" || metric == "respiratory_rate" || metric == "walking_hr" || metric == "body_mass_kg"
         let trendNote: String
         let trendDirection: String
         let slopeThreshold = mean * 0.005   // 0.5% per day is "stable"
@@ -175,6 +182,10 @@ actor ToolExecutor {
         case "cardio_recovery":      return entry.cardioRecovery
         case "stair_ascent_speed":   return entry.stairAscentSpeed
         case "stair_descent_speed":  return entry.stairDescentSpeed
+        case "oxygen_saturation":    return entry.oxygenSaturation.map { $0 * 100 }  // return as %
+        case "exercise_minutes":     return entry.exerciseMinutes
+        case "distance_km":          return entry.distanceWalkingRunning
+        case "body_mass_kg":         return entry.bodyMass
         default:                     return nil
         }
     }
@@ -221,12 +232,31 @@ actor ToolExecutor {
             add("vo2max_7day_avg_ml_kg_min", baselines.vo2Max7DayAvg)
             add("vo2max_30day_avg_ml_kg_min", baselines.vo2Max30DayAvg)
         }
+        if metric == "all" || metric == "cardio_recovery" {
+            add("cardio_recovery_30day_avg_bpm_drop", baselines.cardioRecovery30DayAvg)
+        }
         if metric == "all" || metric == "walking_speed" {
             add("walking_speed_7day_avg_m_s", baselines.walkingSpeed7DayAvg)
             add("walking_speed_30day_avg_m_s", baselines.walkingSpeed30DayAvg)
         }
         if metric == "all" || metric == "walking_hr" {
             add("walking_hr_30day_avg_bpm", baselines.walkingHeartRate30DayAvg)
+        }
+        if metric == "all" || metric == "oxygen_saturation" {
+            if let v = baselines.oxygenSaturation30DayAvg {
+                result["oxygen_saturation_30day_avg_pct"] = Int(v * 100)
+            } else {
+                result["oxygen_saturation_30day_avg_pct"] = NSNull()
+            }
+        }
+        if metric == "all" || metric == "exercise_minutes" {
+            add("exercise_minutes_7day_avg", baselines.exerciseMinutes7DayAvg)
+        }
+        if metric == "all" || metric == "distance_km" {
+            add("distance_7day_avg_km", baselines.distanceWalkingRunning7DayAvg)
+        }
+        if metric == "all" || metric == "body_mass_kg" {
+            add("body_mass_7day_avg_kg", baselines.bodyMass7DayAvg)
         }
         return encode(result)
     }

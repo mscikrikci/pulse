@@ -31,8 +31,8 @@ struct ContentView: View {
             Tab("Chat", systemImage: "bubble.left.and.bubble.right", value: "chat") {
                 ChatView(pendingChat: $pendingChat)
             }
-            Tab("Settings", systemImage: "gearshape", value: "settings") {
-                SettingsView()
+            Tab("Coach", systemImage: "figure.strengthtraining.traditional", value: "trainer") {
+                TrainerView()
             }
         }
         // Long-press anywhere on the tab bar for 2 seconds to open the LLM debug log.

@@ -25,17 +25,23 @@ struct ContextBuilder {
         lines.append(hrvLine(summary, baselines: b))
         lines.append(rhrLine(summary, baselines: b))
         lines.append(respRateLine(summary, baselines: b))
+        lines.append(spo2Line(summary, baselines: b))
+        if summary.wristTemperature != nil { lines.append(wristTempLine(summary)) }
         lines.append("")
         lines.append("Activity (Yesterday):")
         lines.append(caloriesLine(summary, baselines: b))
         lines.append(stepsLine(summary, baselines: b))
+        lines.append(exerciseMinutesLine(summary, baselines: b))
+        lines.append(distanceLine(summary, baselines: b))
+        if summary.timeInDaylight != nil { lines.append(daylightLine(summary)) }
         lines.append("")
         lines.append("Mobility & Fitness (rolling averages):")
         lines.append(vo2MaxLine(summary, baselines: b))
         lines.append(walkingSpeedLine(summary, baselines: b))
         lines.append(walkingHRLine(summary, baselines: b))
         lines.append(stairSpeedLine(summary))
-        lines.append(cardioRecoveryLine(summary))
+        lines.append(cardioRecoveryLine(summary, baselines: b))
+        if summary.bodyMass != nil { lines.append(bodyMassLine(summary, baselines: b)) }
         lines.append("")
         lines.append("Current Session:")
         lines.append(timeOfDayLine(summary))
@@ -262,11 +268,74 @@ struct ContextBuilder {
         return line
     }
 
-    private static func cardioRecoveryLine(_ s: HealthSummary) -> String {
+    private static func cardioRecoveryLine(_ s: HealthSummary, baselines b: Baselines) -> String {
         guard let v = s.cardioRecovery else {
             return "- Cardio Recovery: not available (requires post-exercise Apple Watch measurement)"
         }
-        return "- Cardio Recovery (1 min): \(String(format: "%.0f", v)) bpm drop"
+        var line = "- Cardio Recovery (1 min): \(String(format: "%.0f", v)) bpm drop"
+        if let avg30 = b.cardioRecovery30DayAvg {
+            let delta = v - avg30
+            let sign = delta >= 0 ? "+" : ""
+            line += " (30d avg: \(String(format: "%.0f", avg30)) bpm | delta: \(sign)\(String(format: "%.0f", delta)) bpm)"
+        }
+        return line
+    }
+
+    private static func spo2Line(_ s: HealthSummary, baselines b: Baselines) -> String {
+        guard let v = s.oxygenSaturation else {
+            return "- Blood Oxygen (SpO2): not available (requires Apple Watch)"
+        }
+        var line = "- Blood Oxygen (SpO2): \(Int(v * 100))%"
+        if let avg = b.oxygenSaturation30DayAvg {
+            let delta = (v - avg) * 100
+            let sign = delta >= 0 ? "+" : ""
+            line += " (30d avg: \(Int(avg * 100))% | delta: \(sign)\(String(format: "%.1f", delta))%)"
+        }
+        return line
+    }
+
+    private static func wristTempLine(_ s: HealthSummary) -> String {
+        guard let v = s.wristTemperature else { return "" }
+        let sign = v >= 0 ? "+" : ""
+        return "- Wrist Temp (sleep): \(sign)\(String(format: "%.2f", v))°C from baseline"
+    }
+
+    private static func exerciseMinutesLine(_ s: HealthSummary, baselines b: Baselines) -> String {
+        guard let v = s.exerciseMinutes else {
+            return "- Exercise Minutes: not available"
+        }
+        var line = "- Exercise Minutes: \(Int(v)) min"
+        if let avg = b.exerciseMinutes7DayAvg {
+            line += " (7d avg: \(Int(avg)) min)"
+        }
+        return line
+    }
+
+    private static func distanceLine(_ s: HealthSummary, baselines b: Baselines) -> String {
+        guard let v = s.distanceWalkingRunning else {
+            return "- Distance: not available"
+        }
+        var line = "- Distance: \(String(format: "%.2f", v)) km"
+        if let avg = b.distanceWalkingRunning7DayAvg {
+            line += " (7d avg: \(String(format: "%.2f", avg)) km)"
+        }
+        return line
+    }
+
+    private static func daylightLine(_ s: HealthSummary) -> String {
+        guard let v = s.timeInDaylight else { return "" }
+        return "- Time in Daylight: \(Int(v)) min"
+    }
+
+    private static func bodyMassLine(_ s: HealthSummary, baselines b: Baselines) -> String {
+        guard let v = s.bodyMass else { return "" }
+        var line = "- Body Mass: \(String(format: "%.1f", v)) kg"
+        if let avg = b.bodyMass7DayAvg {
+            let delta = v - avg
+            let sign = delta >= 0 ? "+" : ""
+            line += " (7d avg: \(String(format: "%.1f", avg)) kg | delta: \(sign)\(String(format: "%.1f", delta)) kg)"
+        }
+        return line
     }
 
     // MARK: - Current Session Lines
