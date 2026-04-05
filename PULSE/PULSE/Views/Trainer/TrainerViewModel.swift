@@ -13,8 +13,10 @@ class TrainerViewModel {
 
     // Sheet routing
     var showSetup = false
+    var showFilePicker = false
     var selectedWorkout: PlannedWorkout?   // set to show WorkoutDetailView
     var workoutToLog: PlannedWorkout?      // set to show WorkoutLogView
+    var uploadedProgramName: String?
 
     private var trainerStore: TrainerStore?
     private var trendStore: TrendStore?
@@ -30,6 +32,7 @@ class TrainerViewModel {
             profile = await store.profile
             currentPlan = await store.currentPlan
             recentLogs = await store.recentLogs(limit: 10)
+            uploadedProgramName = await store.uploadedProgramName
         } catch let e as AppError {
             error = e
         } catch {
@@ -71,6 +74,8 @@ class TrainerViewModel {
             recentLogs = await trainerStore.recentLogs(limit: 10)
         } catch let e as AppError {
             error = e
+        } catch let urlError as URLError {
+            self.error = AppError.apiFailure(urlError.localizedDescription)
         } catch {
             self.error = AppError.agentMaxIterationsReached
         }
@@ -97,6 +102,55 @@ class TrainerViewModel {
             currentPlan = await trainerStore.currentPlan
         } catch let e as AppError {
             error = e
+        } catch let urlError as URLError {
+            self.error = AppError.apiFailure(urlError.localizedDescription)
+        } catch {
+            self.error = AppError.agentMaxIterationsReached
+        }
+
+        isGeneratingPlan = false
+    }
+
+    func uploadProgram(text: String, name: String) async {
+        guard let store = trainerStore else { return }
+        do {
+            try await store.saveUploadedProgram(text: text, name: name)
+            uploadedProgramName = name
+        } catch let e as AppError {
+            error = e
+        } catch {}
+    }
+
+    func clearUploadedProgram() async {
+        guard let store = trainerStore else { return }
+        do {
+            try await store.clearUploadedProgram()
+            uploadedProgramName = nil
+        } catch {}
+    }
+
+    func generatePlanFromUpload() async {
+        guard let trainerStore, let trendStore else { return }
+        isGeneratingPlan = true
+        error = nil
+        agentMessage = nil
+
+        do {
+            let client = try AnthropicClient()
+            let executor = TrainerToolExecutor(trainerStore: trainerStore, trendStore: trendStore)
+            let runner = TrainerAgentRunner(client: client, executor: executor)
+
+            let result = try await runner.run(
+                instruction: TrainerPrompts.analyzeProgramInstruction,
+                system: TrainerPrompts.system
+            )
+            agentMessage = result.text
+            currentPlan = await trainerStore.currentPlan
+            recentLogs = await trainerStore.recentLogs(limit: 10)
+        } catch let e as AppError {
+            error = e
+        } catch let urlError as URLError {
+            self.error = AppError.apiFailure(urlError.localizedDescription)
         } catch {
             self.error = AppError.agentMaxIterationsReached
         }
@@ -132,7 +186,10 @@ class TrainerViewModel {
         rpe: Int?,
         feedback: WorkoutFeedback,
         notes: String,
-        durationMinutes: Int?
+        durationMinutes: Int?,
+        postWorkoutHR2Min: Int? = nil,
+        actualLoads: String? = nil,
+        scaling: String? = nil
     ) async {
         guard let store = trainerStore, let trendStore else { return }
         isLoggingWorkout = true
@@ -163,7 +220,10 @@ class TrainerViewModel {
             notes: notes,
             hrvAtLog: today?.hrv,
             sleepHoursLastNight: today?.sleepHours,
-            readinessTag: readinessTag
+            readinessTag: readinessTag,
+            postWorkoutHR2Min: postWorkoutHR2Min,
+            actualLoads: actualLoads,
+            scaling: scaling
         )
 
         do {
@@ -227,7 +287,7 @@ actor TrainerAgentRunner {
                 messages: messages,
                 tools: TrainerTools.definitions,
                 model: "claude-sonnet-4-6",
-                maxTokens: 4096
+                maxTokens: 16000
             )
 
             if response.toolCalls.isEmpty {

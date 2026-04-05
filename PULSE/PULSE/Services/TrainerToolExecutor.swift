@@ -57,6 +57,9 @@ actor TrainerToolExecutor {
             if let hrv = log.hrvAtLog          { d["hrv_at_workout"] = round(hrv * 10) / 10 }
             if let sleep = log.sleepHoursLastNight { d["sleep_last_night"] = round(sleep * 10) / 10 }
             if let tag = log.readinessTag      { d["readiness"] = tag }
+            if let hr2min = log.postWorkoutHR2Min { d["post_workout_hr_2min"] = hr2min }
+            if let loads = log.actualLoads { d["actual_loads"] = loads }
+            if let sc = log.scaling { d["scaling"] = sc }
             return d
         }
 
@@ -92,6 +95,18 @@ actor TrainerToolExecutor {
         }
 
         result["health_snapshot"] = healthSnapshot
+
+        // --- Uploaded reference program (capped at ~6000 chars to keep input tokens manageable) ---
+        if let prog = await trainerStore.uploadedProgram, let name = await trainerStore.uploadedProgramName {
+            let cap = 6000
+            let truncated = prog.count > cap
+            let content = truncated ? String(prog.prefix(cap)) + "\n\n[... truncated for brevity ...]" : prog
+            result["uploaded_program"] = [
+                "name": name,
+                "content": content,
+                "truncated": truncated
+            ]
+        }
 
         // --- Current plan summary ---
         if let plan = await trainerStore.currentPlan {

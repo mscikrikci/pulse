@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var savedConfirmation = false
     @State private var showMemoryDebug = false
     @State private var showProfile = false
+    @State private var showHealthMetrics = false
 
     private var isKeyFromPlist: Bool {
         UserDefaults.standard.string(forKey: "anthropicAPIKey") == nil && APIKeyStore.isConfigured
@@ -87,6 +88,24 @@ struct SettingsView: View {
                     Text("Age, gender, body metrics, and health conditions help the AI tailor suggestions.")
                 }
 
+                // MARK: Apple Health
+                Section {
+                    HStack {
+                        Label("Health Integration", systemImage: "heart.text.square.fill")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { showHealthMetrics = true }
+                } header: {
+                    Text("Apple Health")
+                } footer: {
+                    Text("Choose which metrics Pulse reads from Apple Health. Core metrics (HRV, sleep, resting HR) cannot be disabled.")
+                }
+
                 // MARK: Debug
                 Section("Debug") {
                     HStack {
@@ -115,6 +134,11 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showProfile) {
                 UserProfileView()
+            }
+            .sheet(isPresented: $showHealthMetrics) {
+                NavigationStack {
+                    HealthMetricsView()
+                }
             }
             .alert("API Key Saved", isPresented: $savedConfirmation) {
                 Button("OK") {}

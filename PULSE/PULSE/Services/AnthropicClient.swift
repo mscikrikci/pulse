@@ -158,6 +158,8 @@ actor AnthropicClient {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        request.timeoutInterval = 300   // 5 min — plan generation + large uploads can be slow
+
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let bodyStr = String(data: data, encoding: .utf8) ?? ""

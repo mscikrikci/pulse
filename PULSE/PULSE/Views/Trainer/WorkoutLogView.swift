@@ -9,6 +9,9 @@ struct WorkoutLogView: View {
     @State private var feedback: WorkoutFeedback = .justRight
     @State private var notes: String = ""
     @State private var durationText: String = ""
+    @State private var postWorkoutHR: String = ""
+    @State private var actualLoads: String = ""
+    @State private var scalingNotes: String = ""
 
     var body: some View {
         NavigationStack {
@@ -94,6 +97,28 @@ struct WorkoutLogView: View {
                     }
                 }
 
+                // Post-workout HR
+                Section("Post-workout HR at 2 min (optional)") {
+                    HStack {
+                        TextField("e.g. 95", text: $postWorkoutHR)
+                            .keyboardType(.numberPad)
+                        Text("BPM")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Actual loads
+                Section("Actual loads used (optional)") {
+                    TextField("e.g. DL: 100kg, BSS: 12.5kg — grip limited", text: $actualLoads, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+
+                // Scaling
+                Section("What did you scale? (optional)") {
+                    TextField("e.g. Dropped DU to singles from round 5", text: $scalingNotes, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+
                 // Notes
                 Section("Notes (optional)") {
                     TextField("Anything worth remembering…", text: $notes, axis: .vertical)
@@ -126,13 +151,17 @@ struct WorkoutLogView: View {
 
     private func save() {
         let duration = Int(durationText)
+        let hr2min = Int(postWorkoutHR)
         Task {
             await viewModel.logWorkout(
                 workout: workout,
                 rpe: Int(rpe),
                 feedback: feedback,
                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                durationMinutes: duration
+                durationMinutes: duration,
+                postWorkoutHR2Min: hr2min,
+                actualLoads: actualLoads.isEmpty ? nil : actualLoads.trimmingCharacters(in: .whitespacesAndNewlines),
+                scaling: scalingNotes.isEmpty ? nil : scalingNotes.trimmingCharacters(in: .whitespacesAndNewlines)
             )
             dismiss()
         }

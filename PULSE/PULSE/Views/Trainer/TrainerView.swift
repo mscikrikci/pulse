@@ -1,7 +1,9 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TrainerView: View {
     @State private var viewModel = TrainerViewModel()
+    @State private var showFilePicker = false
 
     var body: some View {
         NavigationStack {
@@ -24,6 +26,16 @@ struct TrainerView: View {
                             Button("Refresh Plan") {
                                 Task { await viewModel.refreshPlan() }
                             }
+                            Divider()
+                            Button("Upload Program") { showFilePicker = true }
+                            if viewModel.uploadedProgramName != nil {
+                                Button("Analyze Uploaded Program") {
+                                    Task { await viewModel.generatePlanFromUpload() }
+                                }
+                                Button("Clear Uploaded Program", role: .destructive) {
+                                    Task { await viewModel.clearUploadedProgram() }
+                                }
+                            }
                         } label: {
                             Image(systemName: "ellipsis.circle")
                         }
@@ -38,6 +50,25 @@ struct TrainerView: View {
             }
             .sheet(item: $viewModel.workoutToLog) { workout in
                 WorkoutLogView(workout: workout, viewModel: viewModel)
+            }
+            .fileImporter(
+                isPresented: $showFilePicker,
+                allowedContentTypes: [.plainText, .text],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    let accessing = url.startAccessingSecurityScopedResource()
+                    defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+                    if let text = try? String(contentsOf: url, encoding: .utf8) {
+                        Task {
+                            await viewModel.uploadProgram(text: text, name: url.lastPathComponent)
+                        }
+                    }
+                case .failure:
+                    break
+                }
             }
         }
         .task {
@@ -115,6 +146,36 @@ struct TrainerView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .padding(.horizontal, 32)
+
+                // Upload program option
+                VStack(spacing: 8) {
+                    Text("or")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Button {
+                        showFilePicker = true
+                    } label: {
+                        Label("Upload Existing Program", systemImage: "doc.badge.plus")
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    if let name = viewModel.uploadedProgramName {
+                        Label(name, systemImage: "doc.text.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("Analyze & Build Plan") {
+                            Task { await viewModel.generatePlanFromUpload() }
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.green)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.horizontal, 32)
+                    }
+                }
             }
             if let err = viewModel.error {
                 Text(err.localizedDescription)
@@ -137,6 +198,21 @@ struct TrainerView: View {
 
                 // Week strip
                 weekStripSection
+
+                // Uploaded program indicator
+                if let name = viewModel.uploadedProgramName {
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.text.fill")
+                            .foregroundStyle(.blue)
+                        Text("Reference: \(name)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.blue.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+                }
 
                 // Agent message (after plan gen/refresh)
                 if let msg = viewModel.agentMessage {

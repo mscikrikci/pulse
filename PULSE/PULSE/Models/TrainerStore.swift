@@ -68,6 +68,21 @@ actor TrainerStore {
             .map { $0 }
     }
 
+    func saveUploadedProgram(text: String, name: String) throws {
+        data.uploadedProgram = text
+        data.uploadedProgramName = name
+        try save()
+    }
+
+    func clearUploadedProgram() throws {
+        data.uploadedProgram = nil
+        data.uploadedProgramName = nil
+        try save()
+    }
+
+    var uploadedProgram: String? { data.uploadedProgram }
+    var uploadedProgramName: String? { data.uploadedProgramName }
+
     func logWorkout(_ log: WorkoutLog) throws {
         data.workoutLogs.append(log)
         // Keep only last 90 days

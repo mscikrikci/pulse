@@ -75,30 +75,31 @@ class HealthKitManager {
                        vo2Max, cardioRecovery, walkingHR, walkingSpeed, stairUp, stairDown,
                        spo2, wristTemp, exerciseMins, distance, daylight, bodyMass)
 
+        let prefs = HealthMetricPreferences.shared
         return HealthSummary(
             date: today,
-            hrv: hrvVal,
-            restingHR: rhrVal,
-            sleepHours: sleepResult?.hours,
-            sleepEfficiency: sleepResult?.efficiency,
-            respiratoryRate: respVal,
-            activeCalories: calVal,
-            steps: stepsVal,
-            wakeTime: sleepResult?.wakeTime,
-            todayCalories: todayCalVal,
-            todaySteps: todayStepsVal,
-            vo2Max: vo2MaxVal,
-            cardioRecovery: cardioRecoveryVal,
-            walkingHeartRate: walkingHRVal,
-            walkingSpeed: walkingSpeedVal,
-            stairAscentSpeed: stairUpVal,
-            stairDescentSpeed: stairDownVal,
-            oxygenSaturation: spo2Val,
-            wristTemperature: wristTempVal,
-            exerciseMinutes: exerciseMinsVal,
-            distanceWalkingRunning: distanceVal,
-            timeInDaylight: daylightVal,
-            bodyMass: bodyMassVal
+            hrv:              prefs.isEnabled(.hrv)                    ? hrvVal         : nil,
+            restingHR:        prefs.isEnabled(.restingHR)              ? rhrVal         : nil,
+            sleepHours:       prefs.isEnabled(.sleep)                  ? sleepResult?.hours      : nil,
+            sleepEfficiency:  prefs.isEnabled(.sleep)                  ? sleepResult?.efficiency : nil,
+            respiratoryRate:  prefs.isEnabled(.respiratoryRate)        ? respVal        : nil,
+            activeCalories:   prefs.isEnabled(.activeCalories)         ? calVal         : nil,
+            steps:            prefs.isEnabled(.steps)                  ? stepsVal       : nil,
+            wakeTime:         prefs.isEnabled(.sleep)                  ? sleepResult?.wakeTime   : nil,
+            todayCalories:    prefs.isEnabled(.activeCalories)         ? todayCalVal    : nil,
+            todaySteps:       prefs.isEnabled(.steps)                  ? todayStepsVal  : nil,
+            vo2Max:           prefs.isEnabled(.vo2Max)                 ? vo2MaxVal      : nil,
+            cardioRecovery:   prefs.isEnabled(.cardioRecovery)         ? cardioRecoveryVal : nil,
+            walkingHeartRate: prefs.isEnabled(.walkingHeartRate)       ? walkingHRVal   : nil,
+            walkingSpeed:     prefs.isEnabled(.walkingSpeed)           ? walkingSpeedVal: nil,
+            stairAscentSpeed: prefs.isEnabled(.stairAscentSpeed)       ? stairUpVal     : nil,
+            stairDescentSpeed:prefs.isEnabled(.stairDescentSpeed)      ? stairDownVal   : nil,
+            oxygenSaturation: prefs.isEnabled(.oxygenSaturation)       ? spo2Val        : nil,
+            wristTemperature: prefs.isEnabled(.wristTemperature)       ? wristTempVal   : nil,
+            exerciseMinutes:  prefs.isEnabled(.exerciseMinutes)        ? exerciseMinsVal: nil,
+            distanceWalkingRunning: prefs.isEnabled(.distanceWalkingRunning) ? distanceVal : nil,
+            timeInDaylight:   prefs.isEnabled(.timeInDaylight)         ? daylightVal    : nil,
+            bodyMass:         prefs.isEnabled(.bodyMass)               ? bodyMassVal    : nil
         )
     }
 

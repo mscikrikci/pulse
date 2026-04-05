@@ -256,6 +256,9 @@ struct WorkoutLog: Codable, Sendable, Identifiable {
     var hrvAtLog: Double?
     var sleepHoursLastNight: Double?
     var readinessTag: String?           // "high" | "medium" | "low"
+    var postWorkoutHR2Min: Int?        // BPM at 2 minutes post-workout — key recovery signal
+    var actualLoads: String?           // e.g. "DL: 100kg, BSS: 12.5kg DB — grip limited heavier"
+    var scaling: String?               // what was scaled and why
 
     enum CodingKeys: String, CodingKey {
         case id, date
@@ -268,6 +271,9 @@ struct WorkoutLog: Codable, Sendable, Identifiable {
         case hrvAtLog          = "hrv_at_log"
         case sleepHoursLastNight = "sleep_hours_last_night"
         case readinessTag      = "readiness_tag"
+        case postWorkoutHR2Min = "post_workout_hr_2min"
+        case actualLoads = "actual_loads"
+        case scaling
     }
 }
 
@@ -303,12 +309,16 @@ struct TrainerStoreData: Codable, Sendable {
     var currentPlan: WeeklyPlan?
     var planHistory: [WeeklyPlan]       // last 4 weeks
     var workoutLogs: [WorkoutLog]       // last 90 days
+    var uploadedProgram: String?       // raw text of an uploaded training program
+    var uploadedProgramName: String?   // filename for display
 
     enum CodingKeys: String, CodingKey {
         case profile
         case currentPlan  = "current_plan"
         case planHistory  = "plan_history"
         case workoutLogs  = "workout_logs"
+        case uploadedProgram = "uploaded_program"
+        case uploadedProgramName = "uploaded_program_name"
     }
 
     static func empty() -> TrainerStoreData {
